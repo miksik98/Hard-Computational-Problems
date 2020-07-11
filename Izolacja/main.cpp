@@ -52,14 +52,15 @@ void Graph::print() {
 }
 
 int Graph::getMinimumDegreeVertex() {
-    for(int i = 1; i <= 4; i++){
-        for (int j = 0; j < verticesNumber; j++){
-            if(adjList[j].size() == i){
-                return j;
-            }
+    int minDegree = 1000000;
+    int vertex = -1;
+    for (int i = 0; i < verticesNumber; i++){
+        if(adjList[i].size() < minDegree && !adjList[i].empty()){
+            minDegree = adjList[i].size();
+            vertex = i;
         }
     }
-    return -1;
+    return vertex;
 }
 
 int Graph::getVerticesNumber() {
@@ -89,6 +90,13 @@ int W, H, L, K;
 
 void printCoordinatesOf(int x){
     cout << x % W << " " << x / W << endl;
+}
+
+bool contains(const vector<Edge>& edges, Edge e){
+    for(auto x: edges){
+        if(x.dest == e.dest && x.src == e.src) return true;
+    }
+    return false;
 }
 
 int main() {
@@ -153,40 +161,46 @@ int main() {
 
     Graph graph(edges, N);
 
-    while(solution.size() < K){
-        int v = graph.getMinimumDegreeVertex();
-        if(v == -1) break;
-        solution.push_back(v);
+    vector<Edge> newEdges = edges;
+    for(int v = 0; v < W*H; v++) {
         queue<int> toVisit;
         int *visited = new int[graph.getVerticesNumber()];
         int *distance = new int[graph.getVerticesNumber()];
-        for(int i = 0; i < graph.getVerticesNumber(); i++) {
+        for (int i = 0; i < graph.getVerticesNumber(); i++) {
             visited[i] = 0;
-            distance[i] = 1000000;
         }
         visited[v] = 1;
         distance[v] = 0;
         toVisit.push(v);
-        while(!toVisit.empty()){
+        while (!toVisit.empty()) {
             int vertex = toVisit.front();
             toVisit.pop();
-            if(distance[vertex] == L) continue;
-            for(auto neigh: graph.getNeighbours(vertex)){
-                if(visited[neigh] == 0) {
+            if(v!=vertex && !contains(newEdges, {v, vertex})) newEdges.push_back({v, vertex});
+            if (distance[vertex] == L) continue;
+            for (auto neigh: graph.getNeighbours(vertex)) {
+                if (visited[neigh] == 0) {
                     visited[neigh] = 1;
-                    distance[neigh] = distance[vertex]+1;
+                    distance[neigh] = distance[vertex] + 1;
                     toVisit.push(neigh);
                 }
             }
             visited[vertex] = 2;
         }
-        for(int i = 0; i < graph.getVerticesNumber(); i++){
-            if(visited[i] > 0) {
-                graph.deleteVertex(i);
-            }
-        }
         delete[] visited;
         delete[] distance;
+    }
+
+    Graph graphL = Graph(newEdges, N);
+
+    while(solution.size() < K){
+        int v = graphL.getMinimumDegreeVertex();
+        if(v == -1) break;
+        solution.push_back(v);
+        auto neighbours = graphL.getNeighbours(v);
+        for(auto neigh: neighbours){
+            graphL.deleteVertex(neigh);
+        }
+        graphL.deleteVertex(v);
     }
 
     for(auto x: solution) printCoordinatesOf(x);
